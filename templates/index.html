@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Items — CRUD Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; background: #f5f5f5; }
+    h1 { color: #222; }
+    form { display: flex; gap: 8px; margin-bottom: 24px; }
+    input { flex: 1; padding: 8px; font-size: 14px; }
+    button { padding: 8px 14px; font-size: 14px; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #ddd; }
+    th { background: #333; color: white; }
+    .actions button { margin-right: 6px; }
+    .delete-btn { background: #d9534f; color: white; border: none; border-radius: 4px; }
+    .edit-btn { background: #337ab7; color: white; border: none; border-radius: 4px; }
+    #status { color: #555; font-size: 13px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Items</h1>
+
+  <form id="item-form">
+    <input type="text" id="name" placeholder="Name" required />
+    <input type="text" id="description" placeholder="Description" />
+    <button type="submit" id="submit-btn">Add</button>
+  </form>
+  <div id="status"></div>
+
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Description</th><th>Created</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="items-body"></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById("item-form");
+    const nameInput = document.getElementById("name");
+    const descInput = document.getElementById("description");
+    const submitBtn = document.getElementById("submit-btn");
+    const statusEl = document.getElementById("status");
+    const tbody = document.getElementById("items-body");
+    let editingId = null;
+
+    async function loadItems() {
+      statusEl.textContent = "Loading...";
+      try {
+        const res = await fetch("/items");
+        const items = await res.json();
+        tbody.innerHTML = "";
+        items.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.name}</td>
+            <td>${item.description || ""}</td>
+            <td>${item.created_at ? item.created_at.split("T")[0] : ""}</td>
+            <td class="actions">
+              <button class="edit-btn" data-id="${item.id}" data-name="${item.name}" data-desc="${item.description || ""}">Edit</button>
+              <button class="delete-btn" data-id="${item.id}">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        statusEl.textContent = `${items.length} item(s) loaded.`;
+      } catch (err) {
+        statusEl.textContent = "Error loading items: " + err;
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = { name: nameInput.value, description: descInput.value };
+      try {
+        if (editingId) {
+          await fetch(`/items/${editingId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          editingId = null;
+          submitBtn.textContent = "Add";
+        } else {
+          await fetch("/items", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
+        form.reset();
+        loadItems();
+      } catch (err) {
+        statusEl.textContent = "Error saving item: " + err;
+      }
+    });
+
+    tbody.addEventListener("click", async (e) => {
+      const id = e.target.dataset.id;
+      if (!id) return;
+
+      if (e.target.classList.contains("delete-btn")) {
+        await fetch(`/items/${id}`, { method: "DELETE" });
+        loadItems();
+      }
+
+      if (e.target.classList.contains("edit-btn")) {
+        editingId = id;
+        nameInput.value = e.target.dataset.name;
+        descInput.value = e.target.dataset.desc;
+        submitBtn.textContent = "Update";
+        nameInput.focus();
+      }
+    });
+
+    loadItems();
+  </script>
+</body>
+</html>
