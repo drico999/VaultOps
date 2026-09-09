@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
 
+# Required for OIDC: lets this workflow request a short-lived identity
+# token from GitHub to present to AWS, instead of using stored secrets.
+permissions:
+  id-token: write
+  contents: read
+
 env:
   DOCKERHUB_IMAGE: andries999/week1-app
   AWS_REGION: af-south-1
@@ -41,11 +47,14 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Configure AWS credentials
+      # No more AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY secrets.
+      # GitHub mints a short-lived OIDC token for this run, AWS checks it
+      # against the trust policy on AWS_ROLE_ARN (repo + branch scoped,
+      # see oidc.tf) and hands back temporary credentials for this job only.
+      - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Get running instance IDs from the Auto Scaling Group
@@ -66,10 +75,6 @@ jobs:
             echo "No running instances found - aborting deploy"
             exit 1
           fi
-
-          # Build the --targets argument as a JSON array of instance IDs
-          TARGETS_JSON=$(printf '"%s",' "${INSTANCE_IDS[@]}")
-          TARGETS_JSON="[${TARGETS_JSON%,}]"
 
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
