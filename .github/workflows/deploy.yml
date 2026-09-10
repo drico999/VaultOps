@@ -47,18 +47,6 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      # ---- TEMPORARY DEBUG STEP ----
-      # Prints the actual claims in the OIDC token GitHub issues for this
-      # run, so we can compare them character-for-character against the
-      # role's trust policy instead of guessing. Safe to share output -
-      # contains no secrets, just repo/ref/audience metadata.
-      # Remove this step once the AssumeRoleWithWebIdentity issue is fixed.
-      - name: Debug OIDC token claims
-        run: |
-          IDTOKEN=$(curl -sSL -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
-          echo "$IDTOKEN" | cut -d '.' -f2 | base64 -d 2>/dev/null | jq .
-
       # No more AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY secrets.
       # GitHub mints a short-lived OIDC token for this run, AWS checks it
       # against the trust policy on AWS_ROLE_ARN (repo + branch scoped,
