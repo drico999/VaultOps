@@ -1,0 +1,10 @@
+These four are NOT included yet - they require a successful CPU stress test
+that actually crosses 70% for 2 consecutive minutes, which hadn't happened
+yet as of the last check:
+
+06-sg-rds-inbound.png       - EC2 -> Security Groups -> week2-cloud-project-rds-sg -> Inbound rules
+10-asg-activity-scaleout.png - ASG -> Activity tab -> Activity history (a real scale-out event)
+12-highcpu-alarm-firing.png  - CloudWatch -> Alarms -> high-cpu -> graph showing it In alarm, crossing 70%
+13-sns-alarm-email.png       - An actual "ALARM:" email opened in your inbox
+
+Delete this file once all four are added.
