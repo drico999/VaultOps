@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
 
-# Required for OIDC: lets this workflow request a short-lived identity
+# Required for OIDC: lets this workflow request a short-lived identity.
 # token from GitHub to present to AWS, instead of using stored secrets.
 permissions:
   id-token: write
